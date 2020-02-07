@@ -19,6 +19,13 @@
      \"child2\" ))
   ```"
   [type & args]
+  (when (and (symbol? (first args))
+             (= (hana/inferred-type &env (first args))
+                'cljs.core/IMap))
+    (hana/warn hana/warning-inferred-map-props
+               &env
+               {:form (cons type args)
+                :props-form (first args)}))
   (let [inferred (hana/inferred-type &env type)
         native? (or (keyword? type)
                     (string? type)
@@ -118,20 +125,32 @@
         opts (if opts-map?
                (first body)
                {})
+        body (if opts-map?
+               (rest body)
+               body)
         hooks (hana/find-hooks body)
         sig-sym (gensym "sig")
-        fully-qualified-name (str *ns* "/" display-name)]
-    `(do (when goog/DEBUG
-           (def ~sig-sym (signature!)))
+        fully-qualified-name (str *ns* "/" display-name)
+        feature-flags (:helix/features opts)]
+    (when (:check-invalid-hooks-usage feature-flags)
+      (when-some [invalid-hooks (->> (map hana/invalid-hooks-usage body)
+                                     (flatten)
+                                     (filter (comp not nil?))
+                                     (seq))]
+        (throw (ex-info "Invalid hooks usage"
+                        {:invalid-hooks invalid-hooks}))))
+    `(do ~(when (:fast-refresh feature-flags)
+            `(if ^boolean goog/DEBUG
+               (def ~sig-sym (signature!))))
          (def ~wrapped-name
            (-> ~(fnc* wrapped-name props-bindings
-                                   (cons `(when goog/DEBUG
-                                            (when ~sig-sym
-                                              (~sig-sym)))
-                                         (if opts-map?
-                                           (rest body)
-                                           body)))
-               (cond-> goog/DEBUG
+                      (cons (when (:fast-refresh feature-flags)
+                              `(if ^boolean goog/DEBUG
+                                 (when ~sig-sym
+                                   (~sig-sym))))
+                                         body))
+               (cond->
+                 (true? ^boolean goog/DEBUG)
                  (doto (goog.object/set "displayName" ~fully-qualified-name)))
                ~@(-> opts :wrap)))
 
@@ -140,12 +159,13 @@
                (list docstring))
            ~wrapped-name)
 
-         (when goog/DEBUG
-           (when ~sig-sym
-             (~sig-sym ~wrapped-name ~(string/join hooks)
-              nil ;; forceReset
-              nil)) ;; getCustomHooks
-           (register! ~wrapped-name ~fully-qualified-name))
+         ~(when (:fast-refresh feature-flags)
+            `(if ^boolean goog/DEBUG
+               (when ~sig-sym
+                 (~sig-sym ~wrapped-name ~(string/join hooks)
+                  nil ;; forceReset
+                  nil)) ;; getCustomHooks
+               (register! ~wrapped-name ~fully-qualified-name)))
          ~display-name)))
 
 

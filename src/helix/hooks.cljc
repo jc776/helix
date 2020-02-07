@@ -110,6 +110,20 @@
 #?(:clj
    (defn deps-macro-body [env deps body deps->hook-body]
      (cond
+       ;;
+       ;; Warn on typical errors writing body
+       ;;
+
+       ;; a single symbol
+       (and (= (count body) 1) (symbol? (first body)))
+       (do (hana/warn hana/warning-simple-body env {:form body})
+           nil)
+
+
+       ;;
+       ;; Different variations of deps
+       ;;
+
        ;; deps are passed in as a vector
        (vector? deps) (deps->hook-body `(cljs.core/array ~@deps)
                                        body)
@@ -123,7 +137,16 @@
        (= deps :always) (deps->hook-body body)
 
        ;; pass an empty array for things that should only run once
-       (= deps :once) (deps->hook-body '(cljs.core/array) body))))
+       (= deps :once) (deps->hook-body '(cljs.core/array) body)
+
+       :else (deps->hook-body `(determine-deps ~deps) body)))
+
+   :cljs (defn determine-deps [deps]
+           (case deps
+             :once (array)
+             :always js/undefined
+             :auto-deps (throw (js/Error. "Cannot use :auto-deps outside of macro."))
+             (to-array deps))))
 
 
 (defmacro use-effect

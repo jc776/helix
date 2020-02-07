@@ -4,9 +4,7 @@
             [helix.impl.props :as impl.props]
             [helix.impl.classes]
             [cljs-bean.core :as bean]
-            [ueaq.core :as ueaq]
-            ["react" :as react]
-            ["react-dom/server" :as rds])
+            ["react" :as react])
   (:require-macros [helix.core]))
 
 
@@ -26,7 +24,40 @@
 (def create-element react/createElement)
 
 
-(defn $$
+(defn $
+  "Create a new React element from a valid React type.
+
+  Example:
+  ```
+  ($ MyComponent
+   \"child1\"
+   ($ \"span\"
+     {:style {:color \"green\"}}
+     \"child2\" ))
+  ```"
+  [type & args]
+  (let [?p (first args)
+        ?c (rest args)
+        native? (or (keyword? type)
+                    (string? type)
+                    (:native (meta type)))
+        type' (if (keyword? type)
+                (name type)
+                type)]
+    (if (map? ?p)
+      (apply create-element
+             type'
+             (if native?
+               (impl.props/-native-props ?p)
+               (impl.props/-props ?p))
+             ?c)
+      (apply create-element
+             type'
+             nil
+             args))))
+
+
+(def ^:deprecated $$
   "Dynamically create a new React element from a valid React type.
 
   `$` can typically be faster, because it will statically process the arguments
@@ -40,21 +71,7 @@
      {:style {:color \"green\"}}
      \"child2\" ))
   ```"
-  [type & args]
-  (let [?p (first args)
-        ?c (rest args)
-        native? (string? type)]
-    (if (map? ?p)
-      (apply create-element
-             type
-             (if native?
-               (impl.props/-native-props ?p)
-               (impl.props/-props ?p))
-             ?c)
-      (apply create-element
-             type
-             nil
-             args))))
+ $)
 
 
 (defprotocol IExtractType
@@ -70,9 +87,7 @@
   "Creates a factory function for a React component"
   [type]
   (-> (fn factory [& args]
-        (if (map? (first args))
-          (apply create-element type (ueaq/ueaq (first args)) (rest args))
-          (apply create-element type nil args)))
+        (apply $ type args))
       (specify! IExtractType
         (-type [_] type))))
 
