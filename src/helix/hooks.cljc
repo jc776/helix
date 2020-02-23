@@ -6,11 +6,11 @@
   #?(:cljs (:require-macros [helix.hooks])))
 
 #?(:cljs
-   (do (def ^:private raw-use-effect react/useEffect)
-       (def ^:private raw-use-layout-effect react/useLayoutEffect)
-       (def ^:private raw-use-memo react/useMemo)
-       (def ^:private raw-use-callback react/useCallback)
-       (def ^:private raw-use-imperative-handle react/useImperativeHandle)))
+   (do (def raw-use-effect react/useEffect)
+       (def raw-use-layout-effect react/useLayoutEffect)
+       (def raw-use-memo react/useMemo)
+       (def raw-use-callback react/useCallback)
+       (def raw-use-imperative-handle react/useImperativeHandle)))
 
 
 
@@ -95,7 +95,7 @@
 
 ;; React `useEffect` expects either a function or undefined to be returned
 #?(:cljs
-   (defn- wrap-fx [f]
+   (defn wrap-fx [f]
      (fn wrap-fx-return []
        (let [x (f)]
          (if (fn? x)
