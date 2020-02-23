@@ -36,14 +36,14 @@
                (name type)
                type)]
     (cond
-      (map? (first args)) `^js/React.Element (create-element
+      (map? (first args)) `^js/React.Element (.createElement (get-react)
                                               ~type
                                               ~(if native?
                                                  `(impl.props/native-props ~(first args))
                                                  `(impl.props/props ~(first args)))
                                               ~@(rest args))
 
-      :else `^js/React.Element (create-element ~type nil ~@args))))
+      :else `^js/React.Element (.createElement (get-react) ~type nil ~@args))))
 
 
 (defmacro <>
@@ -131,20 +131,31 @@
         hooks (hana/find-hooks body)
         sig-sym (gensym "sig")
         fully-qualified-name (str *ns* "/" display-name)
-        feature-flags (:helix/features opts)]
-    (when (:check-invalid-hooks-usage feature-flags)
+        feature-flags (:helix/features opts)
+
+        ;; feature flags
+        flag-fast-refresh? (:fast-refresh feature-flags)
+        flag-check-invalid-hooks-usage? (:check-invalid-hooks-usage feature-flags)
+        flag-create-factory? (:create-factory feature-flags)]
+    (when flag-check-invalid-hooks-usage?
       (when-some [invalid-hooks (->> (map hana/invalid-hooks-usage body)
                                      (flatten)
                                      (filter (comp not nil?))
                                      (seq))]
-        (throw (ex-info "Invalid hooks usage"
-                        {:invalid-hooks invalid-hooks}))))
-    `(do ~(when (:fast-refresh feature-flags)
+        #_(throw (ex-info "Invalid hooks usage"
+                          {:invalid-hooks invalid-hooks}))
+        (doseq [invalid-hook invalid-hooks]
+          (hana/warn hana/warning-invalid-hooks-usage
+                     &env
+                     invalid-hook))))
+    `(do ~(when flag-fast-refresh?
             `(if ^boolean goog/DEBUG
                (def ~sig-sym (signature!))))
-         (def ~wrapped-name
-           (-> ~(fnc* wrapped-name props-bindings
-                      (cons (when (:fast-refresh feature-flags)
+         (def ~display-name
+           ~@(when-not (nil? docstring)
+               (list docstring))
+           (-> ~(fnc* display-name props-bindings
+                      (cons (when flag-fast-refresh?
                               `(if ^boolean goog/DEBUG
                                  (when ~sig-sym
                                    (~sig-sym))))
@@ -154,18 +165,17 @@
                  (doto (goog.object/set "displayName" ~fully-qualified-name)))
                ~@(-> opts :wrap)))
 
-         (def ~display-name
-           ~@(when-not (nil? docstring)
-               (list docstring))
-           ~wrapped-name)
+         ~(when flag-create-factory?
+            `(def ~(symbol (str "->" display-name))
+               (cljs-factory ~display-name)))
 
-         ~(when (:fast-refresh feature-flags)
-            `(if ^boolean goog/DEBUG
+         ~(when flag-fast-refresh?
+            `(when ^boolean goog/DEBUG
                (when ~sig-sym
-                 (~sig-sym ~wrapped-name ~(string/join hooks)
+                 (~sig-sym ~display-name ~(string/join hooks)
                   nil ;; forceReset
                   nil)) ;; getCustomHooks
-               (register! ~wrapped-name ~fully-qualified-name)))
+               (register! ~display-name ~fully-qualified-name)))
          ~display-name)))
 
 

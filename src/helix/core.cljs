@@ -24,6 +24,14 @@
 (def create-element react/createElement)
 
 
+(def create-context react/createContext)
+
+
+;; this is to enable calling `(.createElement (get-react))` without doing
+;; a dynamic arity dispatch. See https://github.com/Lokeh/helix/issues/20
+(defn get-react [] react)
+
+
 (defn $
   "Create a new React element from a valid React type.
 
@@ -92,9 +100,29 @@
         (-type [_] type))))
 
 
+(defn- cljs-factory
+  [type]
+  (-> (fn factory [& args]
+        ;; put props detection here so it's easier to detect
+        ;; slow paths in render
+        (if (map? (first args))
+          (apply react/createElement
+                 type
+                 #js {"helix/props" (first args)}
+                 (rest args))
+          (apply react/createElement
+                 type
+                 #js {}
+                 args)))))
+
+
 (defn- extract-cljs-props
   [o]
-  (bean/bean o))
+  (when (and ^boolean goog/DEBUG (map? o))
+    (throw (ex-info "Props received were a map. This probably means you're calling your component as a function." {:props o})))
+  (if-let [props (gobj/get o "helix/props")]
+    (assoc props :children (gobj/get o "children"))
+    (bean/bean o)))
 
 
 
@@ -148,4 +176,4 @@
 (defn signature! []
   ;; grrr `maybe` bug strikes again
   (and (exists? (.-$$Signature$$ js/window))
-      (.$$Signature$$ js/window)))
+       (.$$Signature$$ js/window)))

@@ -149,14 +149,15 @@
              (to-array deps))))
 
 
-(defmacro use-effect
-  [deps & body]
-  (deps-macro-body
-   &env deps body
-   (fn
-     ([fn-body] `^clj-nil (raw-use-effect (wrap-fx (fn [] ~@fn-body))))
-     ([deps fn-body]
-      `^clj-nil (raw-use-effect (wrap-fx (fn [] ~@fn-body)) ~deps)))))
+#?(:clj
+   (defmacro use-effect
+     [deps & body]
+     (deps-macro-body
+      &env deps body
+      (fn
+        ([fn-body] `^clj-nil (raw-use-effect (wrap-fx (fn [] ~@fn-body))))
+        ([deps fn-body]
+         `^clj-nil (raw-use-effect (wrap-fx (fn [] ~@fn-body)) ~deps))))))
 
 
 #?(:cljs
@@ -172,13 +173,14 @@
       (react/useEffect (wrap-fx f) (to-array deps)))))
 
 
-(defmacro use-layout-effect [deps & body]
-  (deps-macro-body
-   &env deps body
-   (fn
-     ([fn-body] `^clj-nil (raw-use-layout-effect (wrap-fx (fn [] ~@fn-body))))
-     ([deps fn-body]
-      `^clj-nil (raw-use-layout-effect (wrap-fx (fn [] ~@fn-body)) ~deps)))))
+#?(:clj
+   (defmacro use-layout-effect [deps & body]
+     (deps-macro-body
+      &env deps body
+      (fn
+        ([fn-body] `^clj-nil (raw-use-layout-effect (wrap-fx (fn [] ~@fn-body))))
+        ([deps fn-body]
+         `^clj-nil (raw-use-layout-effect (wrap-fx (fn [] ~@fn-body)) ~deps))))))
 
 
 #?(:cljs
@@ -191,22 +193,23 @@
       (react/useLayoutEffect (wrap-fx f) (to-array deps)))))
 
 
-(defmacro use-memo
-  [deps & body]
-  (deps-macro-body
-   &env deps body
-   (fn
-     ([fn-body]
-      (vary-meta
-        `(raw-use-memo (fn [] ~@fn-body))
-        merge
-        {:tag (hana/inferred-type &env fn-body)}))
-     ([deps fn-body]
-      (vary-meta
-        `(raw-use-memo (fn [] ~@fn-body)
-                       ~deps)
-        merge
-        {:tag (hana/inferred-type &env (last fn-body))})))))
+#?(:clj
+   (defmacro use-memo
+     [deps & body]
+     (deps-macro-body
+      &env deps body
+      (fn
+        ([fn-body]
+         (vary-meta
+           `(raw-use-memo (fn [] ~@fn-body))
+           merge
+           {:tag (hana/inferred-type &env fn-body)}))
+        ([deps fn-body]
+         (vary-meta
+           `(raw-use-memo (fn [] ~@fn-body)
+                          ~deps)
+           merge
+           {:tag (hana/inferred-type &env (last fn-body))}))))))
 
 
 #?(:cljs
@@ -219,14 +222,15 @@
       (react/useMemo f (to-array deps)))))
 
 
-(defmacro use-callback
-  [deps & body]
-  (deps-macro-body
-   &env deps body
-   (fn
-     ([fn-body] `^function (raw-use-callback ~@fn-body))
-     ([deps fn-body] `^function (raw-use-callback ~@fn-body
-                                                  ~deps)))))
+#?(:clj
+   (defmacro use-callback
+     [deps & body]
+     (deps-macro-body
+      &env deps body
+      (fn
+        ([fn-body] `^function (raw-use-callback ~@fn-body))
+        ([deps fn-body] `^function (raw-use-callback ~@fn-body
+                                                     ~deps))))))
 
 #?(:cljs
    (defn use-callback*
@@ -238,15 +242,16 @@
       (react/useCallback f (to-array deps)))))
 
 
-(defmacro use-imperative-handle
-  [ref deps & body]
-  (deps-macro-body
-   &env deps body
-   (fn
-     ([fn-body] `(raw-use-imperative-handle ref (fn [] ~@fn-body)))
-     ([deps fn-body] `(raw-use-imperative-handle
-                       (fn [] ~@fn-body)
-                       ~deps)))))
+#?(:clj
+   (defmacro use-imperative-handle
+     [ref deps & body]
+     (deps-macro-body
+      &env deps body
+      (fn
+        ([fn-body] `(raw-use-imperative-handle ref (fn [] ~@fn-body)))
+        ([deps fn-body] `(raw-use-imperative-handle
+                          (fn [] ~@fn-body)
+                          ~deps))))))
 
 
 #?(:cljs
@@ -263,4 +268,3 @@
    (def use-debug-value
      "just react/useDebugValue"
      react/debugValue))
-

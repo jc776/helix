@@ -19,11 +19,12 @@ ClojureScript optimized for modern React development.
 
 (defnc App []
   (let [[state set-state] (hooks/use-state {:name "Helix User"})]
-    (d/div (d/h1 "Welcome!")
-           ;; create elements out of components
-           ($ Greeting {:name (:name state)})
-           (d/input {:value name 
-                     :on-change #(set-state assoc :name (.. % -target -value))}))))
+    (d/div
+     (d/h1 "Welcome!")
+      ;; create elements out of components
+      ($ Greeting {:name (:name state)})
+      (d/input {:value name
+                :on-change #(set-state assoc :name (.. % -target -value))}))))
 
 ;; start your app with your favorite React renderer
 (rdom/render ($ App) (js/document.getElementById "app"))
@@ -50,6 +51,7 @@ react yourself using webpack, ensuring it is provided as the name `"react"`.
 
 ## Documentation
 
+- [Why Helix](./docs/motivation.md)
 - [Creating Components](./docs/creating-components.md)
   - [Props](./docs/creating-components.md#props)
   - [Interop](./docs/creating-components.md#interop)
@@ -76,6 +78,11 @@ react yourself using webpack, ensuring it is provided as the name `"react"`.
 - [Experiments](./docs/experiments.md)
   - [Detect invalid hooks usage](./docs/experiments.md#detect-invalid-hooks-usage)
   - [Fast Refresh](./docs/experiments.md#fast-refresh)
+- [Pro-tips](./docs/pro-tips.md)
+  - [Create a custom macro](./docs/pro-tips.md#create-a-custom-macro)
+- [Frequently Asked Questions](./docs/faq.md)
+  - [What about hx?](./docs/faq.md#what-about-hx)
+  - [What about hiccup?](./docs/faq.md#what-about-hiccup)
 
 
 Other resources:
