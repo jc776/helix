@@ -100,7 +100,7 @@
         (-type [_] type))))
 
 
-(defn- cljs-factory
+(defn cljs-factory
   [type]
   (-> (fn factory [& args]
         ;; put props detection here so it's easier to detect
@@ -116,7 +116,7 @@
                  args)))))
 
 
-(defn- extract-cljs-props
+(defn extract-cljs-props
   [o]
   (when (and ^boolean goog/DEBUG (map? o))
     (throw (ex-info "Props received were a map. This probably means you're calling your component as a function." {:props o})))
